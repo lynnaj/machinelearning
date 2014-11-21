@@ -1,0 +1,82 @@
+---
+title: "Prediction Assignment"
+author: "Lynna"
+date: "Friday, November 21, 2014"
+output: html_document
+---
+
+#Background
+The goal of this assignment is to use the data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants, to create a model that can predict the manner in which the exercised were done.  More information about the data can be found on this website:  <http://groupware.les.inf.puc-rio.br/har>.
+
+
+#Data loading and cleansing
+The data includes 160 variables, one of which is the dependent variable, "classe". The manner of exercise was recorded under this variable.  It's a factor variable with 5 levels, which are labeled with letters A to E.
+
+The data contains many missing values, which are labeled with "NA".  Any columns with too many NA's are useless, so the for-loop below is used to find the amount of NA's in each column.  There are 60 columns which do not have NA's, so these are kept and the rest are dropped.  The first 7 columns are also dropped since they are just identifier varibles such as time and username.  
+```{r}
+setwd("C:/Users/lynnaj/Desktop/Desktop/coursera/machine learning/assignment")
+dataTraining <- read.csv("pml-training.csv", na.strings= c("", " ", "NA"))
+
+NAdf <- NULL
+for(i in 1:ncol(dataTraining)){
+  NAdf[i] <- sum(is.na(dataTraining[,i]))
+}
+
+dataTraining <- dataTraining[,which(NAdf == 0)]  #keep only the variables which has no NA's
+
+dataTraining <- dataTraining[-c(1:7)] #delete first 7 columns as they're not applicable predictors.
+```
+After the data cleansing is finished, there are 53 variables left.
+
+
+#Model
+Cross validation can be performed now with the clean training data, which gets split into 70/30. The 70% of the clean training data is used to build the model.  Then the other 30% is the cross validataion test set.
+
+Random Forests method is chosen for modeling building, because it can handle thousands of input variables without variable deletion.  Plus, it is suitable for such a classification problem.    
+
+```{r, cache=FALSE, message=FALSE,warning=FALSE}
+library(randomForest)
+library(corrplot)
+library(caret)
+library(corrplot)
+set.seed(123)
+
+#cross validation
+inTrain <- createDataPartition(y = dataTraining$classe, p = 0.7, list = FALSE)
+trainset <- dataTraining[inTrain, ]
+crossset <- dataTraining[-inTrain, ]
+```
+
+In order to reduce the forest error rate, the correlation between the independent variables are explored.  By observing the correlation plot graph, the variables which have high correlation with others are picked out.  Three variables are picked to be deleted.  They are "accel_belt_x", "roll_belt", and "total_accel_belt".  
+```{r, echo = T}
+correlations <- cor(trainset[, -c(53)])
+corrplot(correlations)
+
+trainset <- trainset[-c(1, 4, 10)]  #delete the 3 variables
+
+modelFit <- randomForest(classe ~ ., data = trainset)
+modelFit
+````
+
+The results of the model report that the out-of-bag (oob) error is 0.54%.
+And when the model is used to predict the cross validation test set, the results report the accuracy is 99.4%.
+```{r, echo=TRUE}
+# crossvalidate the model using the remaining 30% of data
+predictCross <- predict(modelFit, crossset)
+confusionMatrix(crossset$classe, predictCross)
+```
+The model performs well under cross validation, so it is used on the test set.
+
+#Prediction
+By using the model, we can predict the observations included in the test set.  Here are our predictions:
+```{r}
+# load the test data with 20 observations
+dataTest <- read.csv("pml-testing.csv", na.strings= c("", " ", "NA"))
+
+# predict the classes of the test set using the model
+predictTest <- predict(modelFit, dataTest)
+predictTest
+```
+
+
+
