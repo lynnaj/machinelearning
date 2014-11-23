@@ -1,5 +1,5 @@
 To view my report in html, please copy and paste this link:
 http://htmlpreview.github.io/?https://github.com/lynnj/machinelearning/blob/master/prediction_assignmnet.html
 
-Basically, you can use: http://htmlpreview.github.io/?
-to read any github html files.
+Basically, you can use what's in between <>: <http://htmlpreview.github.io/?>
+to prepend any github html file to preview the file directly on your web browser.
